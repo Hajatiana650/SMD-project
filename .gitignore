@@ -1,14 +1,97 @@
 # Python
-venv/
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+share/python-wheels/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.env
+.env.*
+!.env.example
 
 # Jupyter
 .ipynb_checkpoints/
+*.ipynb_checkpoints
+.jupyter/
 
-# Environment
-.env
+# Data files and local data artifacts
+data/raw/
+data/interim/
+data/processed/
+data/generated/
+*.csv
+*.tsv
+*.json
+*.parquet
+*.feather
+*.xlsx
+*.xls
+*.db
+*.sqlite
+*.sqlite3
+*.h5
+*.hdf5
+*.npz
+*.npy
 
-# IDE
-.vscode/
+# Machine learning outputs
+models/
+checkpoints/
+artifacts/
+outputs/
+mlruns/
+wandb/
+tensorboard/
+*.pkl
+*.pickle
+*.joblib
+*.pt
+*.pth
+*.onnx
+*.safetensors
+
+# Logs and experiment results
+logs/
+*.log
+reports/figures/
+reports/results/
+
+# Coverage, testing, and type checking
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.pyright/
+.ruff_cache/
+
+# IDEs and notebooks
 .idea/
+.vscode/
+*.code-workspace
+
+# Operating system files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Local secrets and configuration
+*.pem
+*.key
+*.secret
+secrets/

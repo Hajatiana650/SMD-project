@@ -1,0 +1,12 @@
+[project]
+name = "smd-project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "faker>=40.38.0",
+    "jupyter>=1.1.1",
+    "numpy>=2.5.3",
+    "pandas>=3.0.5",
+]
