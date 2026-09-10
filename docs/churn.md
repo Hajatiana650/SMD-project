@@ -102,3 +102,24 @@ qui réutilise `build_feature_set()`/`encode_categorical_features()` depuis
 `src/churn/features.py` plutôt que de recopier la logique.
 
 ---
+
+## 10 septembre 2026 — Random Forest comparé, Logistic Regression retenu
+
+**Résultat**
+Random Forest entraîné (n_estimators=200, max_depth=10) : Recall 0.98,
+Precision 1.00, ROC-AUC 0.9998 — quasi identique à Logistic Regression
+(0.98/1.00/0.9999). Feature importance confirme la même hiérarchie que
+les coefficients LR (Monetary > Recency > Frequency >> démographie),
+validant le signal RFM par deux méthodes indépendantes.
+
+**Décision**
+Logistic Regression retenu comme modèle final pour M6 : performance
+identique, mais plus interprétable (coefficients directs) et plus
+simple à défendre à l'oral (M9) que Random Forest.
+
+**Cas limite noté**
+Un client (Recency élevée mais Frequency/Monetary de profil non-churn)
+rate par les deux modèles — profil hybride réaliste, pas une anomalie
+du dataset. Détail : notebooks/model_training.ipynb.
+
+---
