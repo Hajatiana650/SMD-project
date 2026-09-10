@@ -40,3 +40,33 @@ Démarrage du travail sur la branche `feature/churn`. Mise en place du contexte 
 Garder une trace des décisions de modélisation au fil de l'eau, pour le rapport final (M9) et pour limiter la réexplication de contexte à l'agent IA.
 
 ---
+
+## 10 septembre 2026 — Confirmation du leakage sur Total_Spent
+
+**Ce qui a changé / a été décidé**
+Analyse du code de `generate_data.py` (section 4) : `Total_Spent` exclu
+définitivement des features candidates pour M6.
+
+**Pourquoi**
+`_Behavior` détermine directement `purchase_count`, `quantity_max` et l'accès
+aux produits premium — les 3 leviers qui construisent `Total_Spent`. De plus,
+`Total_Spent` agrège toute la période sans coupure temporelle : c'est un
+résumé rétrospectif du comportement déjà connu, pas un signal prédictif.
+
+**Résultat**
+Écart moyen ×6 entre churners et non-churners (8450 vs 1352) confirmé comme
+artefact de génération, pas comme signal métier légitime.
+
+---
+
+## 10 septembre 2026 — Clarification leakage vs signal légitime
+
+**Décision** : Total_Spent (customers_data.csv) reste exclu — origine/fenêtre
+inconnue. RFM calculé nous-mêmes (Recency/Frequency/Monetary depuis
+sales_data.csv) retenu comme feature set principal pour M6, conformément à
+l'usage prévu par generate_data.py.
+
+**Limite notée** : dataset sans bascule temporelle par client → modèle de
+classification d'état, pas de prédiction précoce. Détail : voir eda_churn.ipynb.
+
+--
