@@ -69,4 +69,57 @@ l'usage prévu par generate_data.py.
 **Limite notée** : dataset sans bascule temporelle par client → modèle de
 classification d'état, pas de prédiction précoce. Détail : voir eda_churn.ipynb.
 
---
+---
+
+## 10 septembre 2026 — Baseline Logistic Regression entraîné
+
+**Ce qui a changé / a été décidé**
+Premier modèle entraîné : Logistic Regression sur RFM + Age + Gender +
+Location (16 features encodées), split 80/20 stratifié.
+
+**Résultat**
+Recall 0.98, Precision 1.00, F1 0.99, ROC-AUC 0.9999 — 2 faux négatifs
+sur 200. Coefficients dominants : Monetary (-3.96), Recency (+3.36),
+cohérents avec l'intuition métier (RFM). Détail complet et lecture des
+coefficients : voir notebooks/model_training.ipynb.
+
+**Limite à retenir pour M9**
+Score quasi parfait attribué à la construction déterministe du dataset
+synthétique (Recency/Frequency/Monetary séparent déjà les classes
+presque sans chevauchement dès l'EDA), pas à une performance
+généralisable en conditions réelles. À présenter comme limite du
+dataset, pas comme preuve de qualité du modèle.
+
+---
+
+## 10 septembre 2026 — Séparation eda_churn / model_training
+
+**Décision**
+`eda_churn.ipynb` reste limité à l'exploration et la validation du feature
+set (déjà clôturé par une cellule de conclusion). La comparaison de
+modèles part dans un nouveau notebook, `notebooks/model_training.ipynb`,
+qui réutilise `build_feature_set()`/`encode_categorical_features()` depuis
+`src/churn/features.py` plutôt que de recopier la logique.
+
+---
+
+## 10 septembre 2026 — Random Forest comparé, Logistic Regression retenu
+
+**Résultat**
+Random Forest entraîné (n_estimators=200, max_depth=10) : Recall 0.98,
+Precision 1.00, ROC-AUC 0.9998 — quasi identique à Logistic Regression
+(0.98/1.00/0.9999). Feature importance confirme la même hiérarchie que
+les coefficients LR (Monetary > Recency > Frequency >> démographie),
+validant le signal RFM par deux méthodes indépendantes.
+
+**Décision**
+Logistic Regression retenu comme modèle final pour M6 : performance
+identique, mais plus interprétable (coefficients directs) et plus
+simple à défendre à l'oral (M9) que Random Forest.
+
+**Cas limite noté**
+Un client (Recency élevée mais Frequency/Monetary de profil non-churn)
+rate par les deux modèles — profil hybride réaliste, pas une anomalie
+du dataset. Détail : notebooks/model_training.ipynb.
+
+---
