@@ -1,4 +1,19 @@
 # Python
+<<<<<<< HEAD
+venv/
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+=======
 __pycache__/
 *.py[cod]
 *$py.class
@@ -95,3 +110,4 @@ Desktop.ini
 *.key
 *.secret
 secrets/
+>>>>>>> c6013049d0153f36a9f83d048556ff09ad65997b
