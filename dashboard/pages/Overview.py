@@ -63,3 +63,29 @@ st.dataframe(
     df,
     use_container_width=True
 )
+
+# Produits les plus vendus
+st.subheader("Produits les plus vendus")
+
+top_products = (
+    df.groupby("Product_Name")["Quantity"]
+    .sum()
+    .sort_values(ascending=False)
+    .head(10)
+)
+
+fig_products = px.bar(
+    top_products,
+    x=top_products.index,
+    y=top_products.values,
+    labels={
+        "x": "Produit",
+        "y": "Quantité vendue"
+    },
+    title="Top 10 des produits les plus vendus"
+)
+
+st.plotly_chart(
+    fig_products,
+    use_container_width=True
+)
