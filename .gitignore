@@ -1,8 +1,4 @@
 # Python
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 59030c8d51fd2cf50e9bd91f5e536fc52e9c5b06
 venv/
 __pycache__/
 *.pyc
@@ -16,10 +12,6 @@ __pycache__/
 # IDE
 .vscode/
 .idea/
-<<<<<<< HEAD
-=======
-=======
->>>>>>> 59030c8d51fd2cf50e9bd91f5e536fc52e9c5b06
 __pycache__/
 *.py[cod]
 *$py.class
@@ -116,7 +108,3 @@ Desktop.ini
 *.key
 *.secret
 secrets/
-<<<<<<< HEAD
->>>>>>> c6013049d0153f36a9f83d048556ff09ad65997b
-=======
->>>>>>> 59030c8d51fd2cf50e9bd91f5e536fc52e9c5b06
