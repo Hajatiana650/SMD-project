@@ -74,12 +74,26 @@ def choose_cluster_count(features: np.ndarray) -> int:
 
 
 def compute_quantile_edges(rfm: pd.DataFrame) -> dict[str, np.ndarray]:
-    """Compute quantile bin edges for R/F/M, to be reused (not recomputed) at predict time."""
+    """Compute quantile bin edges on the original RFM value scale."""
     edges = {}
+
     for column in RFM_COLUMNS:
-        _, edges[column] = pd.qcut(
-            rfm[column].rank(method="first"), q=QUANTILE_COUNT, retbins=True
+        _, column_edges = pd.qcut(
+            rfm[column],
+            q=QUANTILE_COUNT,
+            retbins=True,
+            duplicates="drop",
         )
+
+        if len(column_edges) - 1 < QUANTILE_COUNT:
+            print(
+                f"⚠️ {column}: seulement "
+                f"{len(column_edges) - 1} tranches distinctes possibles "
+                f"(attendu {QUANTILE_COUNT})"
+            )
+
+        edges[column] = column_edges
+
     return edges
 
 
