@@ -35,7 +35,7 @@ def load_data():
         SEGMENTATION_DIR / "segmentation_clients.csv"
     )
 
-    profil_segments = pd.read_csv(
+    profil_segment = pd.read_csv(
         SEGMENTATION_DIR / "profil_segments.csv"
     )
 
@@ -50,6 +50,6 @@ def load_data():
         marketing,
         customer_analytics,
         segmentation,
-        profil_segments,
+        profil_segment,
         churn_predictions
     )
