@@ -42,13 +42,6 @@ ENV/
 .jupyter/
 
 # Data files and local data artifacts
-data/raw/
-data/interim/
-data/processed/
-data/generated/
-*.csv
-*.tsv
-*.json
 *.parquet
 *.feather
 *.xlsx
@@ -62,16 +55,13 @@ data/generated/
 *.npy
 
 # Machine learning outputs
-models/
 checkpoints/
 artifacts/
-outputs/
 mlruns/
 wandb/
 tensorboard/
 *.pkl
 *.pickle
-*.joblib
 *.pt
 *.pth
 *.onnx
