@@ -4,6 +4,7 @@ import pandas as pd
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = BASE_DIR / "data" / "processed"
+CHURN_DIR = BASE_DIR / "outputs" / "churn"
 
 
 def load_data():
@@ -27,11 +28,18 @@ def load_data():
     customer_analytics = pd.read_csv(
         DATA_DIR / "customer_analytics.csv"
     )
+    
+    churn_predictions = pd.read_csv(
+        CHURN_DIR / "predictions.csv"
+    )
 
     return (
         customers,
         sales,
         products,
         marketing,
-        customer_analytics
+        customer_analytics,
+        segmentation,
+        profil_segment,
+        churn_predictions
     )
