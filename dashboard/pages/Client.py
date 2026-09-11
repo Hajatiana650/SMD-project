@@ -20,33 +20,68 @@ st.title("Analyse des clients")
 # ---------------------------------------------------------------------
 # 3. CHARGEMENT
 # ---------------------------------------------------------------------
-customers, sales, products, marketing, customer_analytics = load_data()
-
-
-# ---------------------------------------------------------------------
-# 4. KPIs
-# ---------------------------------------------------------------------
-col1, col2, col3, col4 = st.columns(4)
-
-col1.metric("Nombre de clients", f"{len(customers):,}")
-col2.metric("Âge moyen", f"{customers['Age'].mean():.1f} ans")
-col3.metric("Taux de churn", f"{customers['Churn'].mean() * 100:.1f} %")
-col4.metric("CA moyen / client", f"{customers['Total_Spent'].mean():,.0f} $")
-
+customers, sales, products, marketing, customer_analytics, segmentation, profil_segment = load_data()
 
 # ---------------------------------------------------------------------
-# 5. FILTRE : par genre
+# 4. FILTRE
 # ---------------------------------------------------------------------
-genders = ["Tous"] + sorted(customers["Gender"].unique().tolist())
-selected_gender = st.selectbox("Filtrer par genre", genders)
+
+genders = ["Tous"] + sorted(
+    customers["Gender"].dropna().unique().tolist()
+)
+
+selected_gender = st.selectbox(
+    "Filtrer par genre",
+    genders
+)
 
 if selected_gender == "Tous":
-    df_cust = customers
+    df_cust = customers.copy()
 else:
-    df_cust = customers[customers["Gender"] == selected_gender]
+    df_cust = customers[
+        customers["Gender"] == selected_gender
+    ].copy()
 
-st.caption(f"Affichage : {selected_gender} — {len(df_cust):,} clients")
+st.caption(
+    f"Affichage : {selected_gender} — "
+    f"{len(df_cust):,} clients"
+)
 
+
+# ---------------------------------------------------------------------
+# 5. KPI
+# ---------------------------------------------------------------------
+
+col1, col2, col3, col4 = st.columns(4)
+
+col1.metric(
+    "Clients",
+    f"{len(df_cust):,}"
+)
+
+col2.metric(
+    "Âge moyen",
+    f"{df_cust['Age'].mean():.1f} ans"
+)
+
+col3.metric(
+    "Dépense moyenne",
+    f"{df_cust['Total_Spent'].mean():,.0f} $"
+)
+
+if "Churn" in df_cust.columns:
+
+    col4.metric(
+        "Taux de churn",
+        f"{df_cust['Churn'].mean() * 100:.1f} %"
+    )
+
+else:
+
+    col4.metric(
+        "Taux de churn",
+        "N/A"
+    )
 
 # ---------------------------------------------------------------------
 # 6. DISTRIBUTION DE L'ÂGE
