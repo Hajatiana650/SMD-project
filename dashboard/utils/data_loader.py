@@ -10,6 +10,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 
 DATA_DIR = BASE_DIR / "data" / "processed"
 SEGMENTATION_DIR = BASE_DIR / "segmentation" / "output"
+CHURN_DIR = BASE_DIR / "outputs" / "churn"
 
 
 # ============================================================
@@ -37,13 +38,9 @@ def load_data():
     customer_analytics = pd.read_csv(
         DATA_DIR / "customer_analytics.csv"
     )
-
-    segmentation = pd.read_csv(
-        SEGMENTATION_DIR / "segmentation_clients.csv"
-    )
-
-    profil_segment = pd.read_csv(
-        SEGMENTATION_DIR / "profil_segments.csv"
+    
+    churn_predictions = pd.read_csv(
+        CHURN_DIR / "predictions.csv"
     )
 
     return (
@@ -53,5 +50,6 @@ def load_data():
         marketing,
         customer_analytics,
         segmentation,
-        profil_segment
+        profil_segment,
+        churn_predictions
     )
