@@ -1,23 +1,26 @@
 import streamlit as st
-import pandas as pd
 import plotly.express as px
 
 from utils.data_loader import load_data
 
 
 st.title("Analyse des produits")
-st.caption("Analyse des performances des produits, catégories et marques")
+st.caption(
+    "Analyse des performances des produits, catégories et marques"
+)
 
 
-# ============================================================
-# CHARGEMENT DES DONNÉES
-# ============================================================
+(
+    customers,
+    sales,
+    products,
+    marketing,
+    customer_analytics,
+    segmentation,
+    profil_segment,
+    churn_predictions
+) = load_data()
 
-customers, sales, products, marketing, customer_analytics, segmentation, profil_segment = load_data()
-
-# ============================================================
-# PRÉPARATION DES DONNÉES
-# ============================================================
 
 df = sales.merge(
     products,
@@ -25,27 +28,34 @@ df = sales.merge(
     how="left"
 )
 
-# Sale_Price = montant total de la ligne de vente
+# Sale_Price = montant total de la ligne
 df["Revenue"] = df["Sale_Price"]
 
 
-# ============================================================
-# FILTRE CATÉGORIE
-# ============================================================
+# ---------------------------------------------------------
+# FILTRE
+# ---------------------------------------------------------
+
+st.sidebar.header("Filtres")
 
 categories = sorted(
     products["Category"].dropna().unique().tolist()
 )
 
-selected_category = st.selectbox(
-    "Filtrer par catégorie",
+selected_category = st.sidebar.selectbox(
+    "Catégorie",
     ["Toutes"] + categories
 )
 
+
 if selected_category == "Toutes":
+
     df_filtered = df.copy()
+
     products_filtered = products.copy()
+
 else:
+
     df_filtered = df[
         df["Category"] == selected_category
     ].copy()
@@ -55,18 +65,14 @@ else:
     ].copy()
 
 
-st.caption(
-    f"Catégorie sélectionnée : {selected_category}"
-)
-
-
-# ============================================================
-# KPI PRODUITS
-# ============================================================
+# ---------------------------------------------------------
+# KPI
+# ---------------------------------------------------------
 
 st.subheader("Indicateurs clés")
 
 col1, col2, col3, col4 = st.columns(4)
+
 
 col1.metric(
     "Produits",
@@ -89,9 +95,9 @@ col4.metric(
 )
 
 
-# ============================================================
-# TOP 10 PRODUITS PAR QUANTITÉ
-# ============================================================
+# ---------------------------------------------------------
+# TOP QUANTITE
+# ---------------------------------------------------------
 
 st.subheader("Top 10 produits par quantité vendue")
 
@@ -103,6 +109,7 @@ top_products_quantity = (
     .sort_values()
     .reset_index()
 )
+
 
 if not top_products_quantity.empty:
 
@@ -125,12 +132,15 @@ if not top_products_quantity.empty:
     )
 
 else:
-    st.info("Aucune donnée de vente disponible.")
+
+    st.info(
+        "Aucune donnée de vente disponible."
+    )
 
 
-# ============================================================
-# TOP 10 PRODUITS PAR CHIFFRE D'AFFAIRES
-# ============================================================
+# ---------------------------------------------------------
+# TOP CA
+# ---------------------------------------------------------
 
 st.subheader("Top 10 produits par chiffre d'affaires")
 
@@ -142,6 +152,7 @@ top_products_revenue = (
     .sort_values()
     .reset_index()
 )
+
 
 if not top_products_revenue.empty:
 
@@ -164,12 +175,15 @@ if not top_products_revenue.empty:
     )
 
 else:
-    st.info("Aucune donnée de vente disponible.")
+
+    st.info(
+        "Aucune donnée de vente disponible."
+    )
 
 
-# ============================================================
-# PRIX MOYEN PAR CATÉGORIE
-# ============================================================
+# ---------------------------------------------------------
+# PRIX MOYEN
+# ---------------------------------------------------------
 
 st.subheader("Prix moyen par catégorie")
 
@@ -180,6 +194,7 @@ average_price_category = (
     .sort_values(ascending=False)
     .reset_index()
 )
+
 
 if not average_price_category.empty:
 
@@ -201,9 +216,9 @@ if not average_price_category.empty:
     )
 
 
-# ============================================================
-# RÉPARTITION DES PRODUITS PAR CATÉGORIE
-# ============================================================
+# ---------------------------------------------------------
+# CATEGORIES
+# ---------------------------------------------------------
 
 st.subheader("Répartition des produits par catégorie")
 
@@ -213,6 +228,7 @@ category_count = (
     .size()
     .reset_index(name="Nombre_Produits")
 )
+
 
 if not category_count.empty:
 
@@ -229,9 +245,9 @@ if not category_count.empty:
     )
 
 
-# ============================================================
-# CATALOGUE DES PRODUITS
-# ============================================================
+# ---------------------------------------------------------
+# CATALOGUE
+# ---------------------------------------------------------
 
 st.subheader("Catalogue des produits")
 
@@ -244,11 +260,15 @@ catalogue_columns = [
 ]
 
 catalogue_columns = [
-    col for col in catalogue_columns
+    col
+    for col in catalogue_columns
     if col in products_filtered.columns
 ]
 
-catalogue = products_filtered[catalogue_columns].copy()
+catalogue = products_filtered[
+    catalogue_columns
+].copy()
+
 
 st.dataframe(
     catalogue,

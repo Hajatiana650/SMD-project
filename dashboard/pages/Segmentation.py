@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 import plotly.express as px
 
 from utils.data_loader import load_data
@@ -8,10 +9,6 @@ st.title("Segmentation des clients")
 st.caption("Analyse des segments et profils clients")
 
 
-# ============================================================
-# CHARGEMENT DES DONNÉES
-# ============================================================
-
 (
     customers,
     sales,
@@ -19,27 +16,55 @@ st.caption("Analyse des segments et profils clients")
     marketing,
     customer_analytics,
     segmentation,
-    profil_segment
+    profil_segment,
+    churn_predictions
 ) = load_data()
 
-# Nettoyage des noms de segments
+
+# ---------------------------------------------------------
+# NETTOYAGE
+# ---------------------------------------------------------
+
 segmentation["Segment"] = (
     segmentation["Segment"]
     .astype(str)
+    .str.replace("\u00a0", " ", regex=False)
     .str.strip()
 )
 
 profil_segment["Segment"] = (
     profil_segment["Segment"]
     .astype(str)
+    .str.replace("\u00a0", " ", regex=False)
     .str.strip()
 )
 
-# ============================================================
+
+# Conversion numérique
+for column in [
+    "Recency_moy",
+    "Freq_moy",
+    "Monetary_moy",
+    "Panier_moy",
+    "Age_moy",
+    "Taux_churn",
+    "Pct_clients"
+]:
+
+    if column in profil_segment.columns:
+
+        profil_segment[column] = pd.to_numeric(
+            profil_segment[column],
+            errors="coerce"
+        )
+
+
+# ---------------------------------------------------------
 # FILTRE
-# ============================================================
+# ---------------------------------------------------------
 
 st.sidebar.header("Filtres")
+
 
 segments = sorted(
     segmentation["Segment"]
@@ -48,26 +73,33 @@ segments = sorted(
     .tolist()
 )
 
+
 selected_segment = st.sidebar.selectbox(
     "Segment",
     ["Tous"] + segments
 )
 
+
 if selected_segment == "Tous":
+
     segmentation_filtered = segmentation.copy()
+
 else:
+
     segmentation_filtered = segmentation[
         segmentation["Segment"] == selected_segment
     ].copy()
 
 
-# ============================================================
+# ---------------------------------------------------------
 # KPI
-# ============================================================
+# ---------------------------------------------------------
 
 st.subheader("Vue d'ensemble des segments")
 
+
 col1, col2, col3, col4 = st.columns(4)
+
 
 col1.metric(
     "Clients segmentés",
@@ -79,30 +111,54 @@ col2.metric(
     f"{segmentation['Segment'].nunique():,}"
 )
 
+
+# Ces deux KPI restent globaux
+vip_count = (
+    segmentation["Segment"]
+    .str.strip()
+    .eq("VIP / Champions")
+    .sum()
+)
+
+lost_count = (
+    segmentation["Segment"]
+    .str.strip()
+    .eq("Perdus")
+    .sum()
+)
+
+
 col3.metric(
     "Clients VIP / Champions",
-    f"{(segmentation_filtered['Segment'].str.strip() == 'VIP / Champions').sum():,}"
+    f"{vip_count:,}"
 )
 
 col4.metric(
     "Clients perdus",
-    f"{(segmentation_filtered['Segment'].str.strip() == 'Perdus').sum():,}"
+    f"{lost_count:,}"
 )
 
 
-# ============================================================
-# RÉPARTITION DES SEGMENTS
-# ============================================================
+# ---------------------------------------------------------
+# REPARTITION
+# ---------------------------------------------------------
 
-st.subheader("Répartition des clients par segment")
+st.subheader(
+    "Répartition des clients par segment"
+)
+
 
 segment_count = (
     segmentation_filtered
     .groupby("Segment")
     .size()
     .reset_index(name="Nombre_Clients")
-    .sort_values("Nombre_Clients", ascending=False)
+    .sort_values(
+        "Nombre_Clients",
+        ascending=False
+    )
 )
+
 
 fig_segments = px.bar(
     segment_count,
@@ -116,17 +172,19 @@ fig_segments = px.bar(
     title="Nombre de clients par segment"
 )
 
+
 st.plotly_chart(
     fig_segments,
     use_container_width=True
 )
 
 
-# ============================================================
-# PROFIL DES SEGMENTS
-# ============================================================
+# ---------------------------------------------------------
+# PROFIL
+# ---------------------------------------------------------
 
 st.subheader("Profil des segments")
+
 
 profile_columns = [
     "Segment",
@@ -140,43 +198,36 @@ profile_columns = [
     "Pct_clients"
 ]
 
-profile_columns = [
-    col
-    for col in profile_columns
-    if col in profil_segment.columns
-]
 
-profile = profil_segment[profile_columns].copy()
+profile = profil_segment[
+    [
+        col
+        for col in profile_columns
+        if col in profil_segment.columns
+    ]
+].copy()
 
-
-# ------------------------------------------------------------
-# Application du filtre au profil
-# ------------------------------------------------------------
 
 if selected_segment != "Tous":
+
     profile = profile[
         profile["Segment"] == selected_segment
     ].copy()
 
 
-# ------------------------------------------------------------
-# Conversion en pourcentage pour affichage
-# ------------------------------------------------------------
-
 if "Taux_churn" in profile.columns:
+
     profile["Taux_churn"] = (
         profile["Taux_churn"] * 100
     ).round(1)
 
+
 if "Pct_clients" in profile.columns:
+
     profile["Pct_clients"] = (
         profile["Pct_clients"]
     ).round(1)
 
-
-# ------------------------------------------------------------
-# Arrondi des autres valeurs
-# ------------------------------------------------------------
 
 for column in [
     "Recency_moy",
@@ -185,13 +236,14 @@ for column in [
     "Panier_moy",
     "Age_moy"
 ]:
+
     if column in profile.columns:
-        profile[column] = profile[column].round(2)
 
+        profile[column] = (
+            profile[column]
+            .round(2)
+        )
 
-# ------------------------------------------------------------
-# Renommage pour le dashboard
-# ------------------------------------------------------------
 
 profile = profile.rename(
     columns={
@@ -214,18 +266,24 @@ st.dataframe(
 )
 
 
-# ============================================================
-# VALEUR CLIENT PAR SEGMENT
-# ============================================================
+# ---------------------------------------------------------
+# DEPENSE MOYENNE
+# ---------------------------------------------------------
 
-st.subheader("Valeur client par segment")
+st.subheader(
+    "Dépense moyenne par segment"
+)
+
 
 monetary_data = profil_segment.copy()
 
+
 if selected_segment != "Tous":
+
     monetary_data = monetary_data[
         monetary_data["Segment"] == selected_segment
     ].copy()
+
 
 if not monetary_data.empty:
 
@@ -254,28 +312,30 @@ if not monetary_data.empty:
         use_container_width=True
     )
 
-else:
-    st.info("Aucune donnée disponible pour ce segment.")
 
-
-# ============================================================
+# ---------------------------------------------------------
 # CHURN PAR SEGMENT
-# ============================================================
+# ---------------------------------------------------------
 
 st.subheader("Churn par segment")
 
+
 churn_data = profil_segment.copy()
 
+
 if selected_segment != "Tous":
+
     churn_data = churn_data[
         churn_data["Segment"] == selected_segment
     ].copy()
+
 
 if not churn_data.empty:
 
     churn_data["Churn (%)"] = (
         churn_data["Taux_churn"] * 100
     )
+
 
     fig_churn = px.bar(
         churn_data.sort_values(
@@ -292,45 +352,37 @@ if not churn_data.empty:
         title="Taux de churn par segment"
     )
 
+
     fig_churn.update_traces(
         texttemplate="%{text:.1f}%",
         textposition="outside"
     )
+
 
     st.plotly_chart(
         fig_churn,
         use_container_width=True
     )
 
-else:
-    st.info("Aucune donnée de churn disponible.")
 
-
-# ============================================================
-# RECOMMANDATIONS MARKETING
-# ============================================================
+# ---------------------------------------------------------
+# RECOMMANDATIONS
+# ---------------------------------------------------------
 
 st.subheader("Recommandations par segment")
 
-recommendation_columns = [
-    "Segment",
-    "Recommandation"
-]
-
-recommendation_columns = [
-    col
-    for col in recommendation_columns
-    if col in profil_segment.columns
-]
 
 recommendations = profil_segment[
-    recommendation_columns
+    ["Segment", "Recommandation"]
 ].copy()
 
+
 if selected_segment != "Tous":
+
     recommendations = recommendations[
         recommendations["Segment"] == selected_segment
     ].copy()
+
 
 st.dataframe(
     recommendations,
@@ -339,11 +391,12 @@ st.dataframe(
 )
 
 
-# ============================================================
-# CLIENTS DU SEGMENT
-# ============================================================
+# ---------------------------------------------------------
+# CLIENTS
+# ---------------------------------------------------------
 
 st.subheader("Clients du segment")
+
 
 client_columns = [
     "Customer_ID",
@@ -360,11 +413,13 @@ client_columns = [
     "Recommandation"
 ]
 
+
 client_columns = [
     col
     for col in client_columns
     if col in segmentation_filtered.columns
 ]
+
 
 st.dataframe(
     segmentation_filtered[client_columns],

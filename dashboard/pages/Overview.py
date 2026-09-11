@@ -9,14 +9,18 @@ st.title("Vue globale")
 st.caption("Synthèse des performances commerciales")
 
 
-# ---------------------------------------------------------------------
-# Chargement
-# ---------------------------------------------------------------------
-customers, sales, products, marketing, customer_analytics, segmentation, profil_segment = load_data()
+(
+    customers,
+    sales,
+    products,
+    marketing,
+    customer_analytics,
+    segmentation,
+    profil_segment,
+    churn_predictions
+) = load_data()
 
-# ---------------------------------------------------------------------
-# Préparation
-# ---------------------------------------------------------------------
+
 df = sales.merge(
     products,
     on="Product_ID",
@@ -25,13 +29,14 @@ df = sales.merge(
 
 df["Date"] = pd.to_datetime(df["Date"])
 
-# Sale_Price représente le montant total de la ligne de vente
+# Sale_Price correspond au montant de la ligne de vente
 df["Revenue"] = df["Sale_Price"]
 
 
-# ---------------------------------------------------------------------
-# Filtres
-# ---------------------------------------------------------------------
+# ---------------------------------------------------------
+# FILTRES
+# ---------------------------------------------------------
+
 st.sidebar.header("Filtres")
 
 channels = sorted(
@@ -44,6 +49,7 @@ selected_channels = st.sidebar.multiselect(
     default=channels
 )
 
+
 min_date = df["Date"].min().date()
 max_date = df["Date"].max().date()
 
@@ -55,12 +61,10 @@ selected_dates = st.sidebar.date_input(
 )
 
 
-# ---------------------------------------------------------------------
-# Application des filtres
-# ---------------------------------------------------------------------
 df_filtered = df[
     df["Channel"].isin(selected_channels)
 ].copy()
+
 
 if len(selected_dates) == 2:
 
@@ -68,44 +72,79 @@ if len(selected_dates) == 2:
 
     df_filtered = df_filtered[
         (df_filtered["Date"].dt.date >= start_date)
-        & (df_filtered["Date"].dt.date <= end_date)
+        &
+        (df_filtered["Date"].dt.date <= end_date)
     ]
 
 
 if df_filtered.empty:
-    st.warning("Aucune donnée disponible avec ces filtres.")
+
+    st.warning(
+        "Aucune donnée disponible avec ces filtres."
+    )
+
     st.stop()
 
 
-# ---------------------------------------------------------------------
+# ---------------------------------------------------------
 # KPI
-# ---------------------------------------------------------------------
+# ---------------------------------------------------------
+
 st.subheader("Indicateurs clés")
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
+
 total_revenue = df_filtered["Revenue"].sum()
+
 total_sales = len(df_filtered)
+
 average_basket = df_filtered["Revenue"].mean()
+
 total_quantity = df_filtered["Quantity"].sum()
+
 active_customers = df_filtered["Customer_ID"].nunique()
 
-col1.metric("CA total", f"{total_revenue:,.0f} $")
-col2.metric("Ventes", f"{total_sales:,}")
-col3.metric("Panier moyen", f"{average_basket:,.2f} $")
-col4.metric("Quantité vendue", f"{total_quantity:,}")
-col5.metric("Clients actifs", f"{active_customers:,}")
+
+col1.metric(
+    "CA total",
+    f"{total_revenue:,.0f} $"
+)
+
+col2.metric(
+    "Ventes",
+    f"{total_sales:,}"
+)
+
+col3.metric(
+    "Panier moyen",
+    f"{average_basket:,.2f} $"
+)
+
+col4.metric(
+    "Quantité vendue",
+    f"{total_quantity:,}"
+)
+
+col5.metric(
+    "Clients actifs",
+    f"{active_customers:,}"
+)
 
 
-# ---------------------------------------------------------------------
-# Churn global
-# ---------------------------------------------------------------------
+# ---------------------------------------------------------
+# CHURN
+# ---------------------------------------------------------
+
 if "Churn" in customers.columns:
 
     st.subheader("Churn")
 
     churn_rate = customers["Churn"].mean() * 100
-    churned = int(customers["Churn"].sum())
+
+    churned = int(
+        customers["Churn"].sum()
+    )
 
     col1, col2 = st.columns(2)
 
@@ -120,9 +159,10 @@ if "Churn" in customers.columns:
     )
 
 
-# ---------------------------------------------------------------------
-# Evolution du CA
-# ---------------------------------------------------------------------
+# ---------------------------------------------------------
+# EVOLUTION CA
+# ---------------------------------------------------------
+
 st.subheader("Évolution du chiffre d'affaires")
 
 df_time = df_filtered.copy()
@@ -133,12 +173,14 @@ df_time["Mois"] = (
     .dt.to_timestamp()
 )
 
+
 ca_monthly = (
     df_time
     .groupby("Mois")["Revenue"]
     .sum()
     .reset_index()
 )
+
 
 fig_time = px.line(
     ca_monthly,
@@ -158,9 +200,10 @@ st.plotly_chart(
 )
 
 
-# ---------------------------------------------------------------------
-# CA par canal
-# ---------------------------------------------------------------------
+# ---------------------------------------------------------
+# CA PAR CANAL
+# ---------------------------------------------------------
+
 st.subheader("Chiffre d'affaires par canal")
 
 ca_channel = (
@@ -170,6 +213,7 @@ ca_channel = (
     .sort_values(ascending=False)
     .reset_index()
 )
+
 
 fig_channel = px.bar(
     ca_channel,
@@ -188,9 +232,10 @@ st.plotly_chart(
 )
 
 
-# ---------------------------------------------------------------------
-# CA par catégorie
-# ---------------------------------------------------------------------
+# ---------------------------------------------------------
+# CA PAR CATEGORIE
+# ---------------------------------------------------------
+
 st.subheader("Chiffre d'affaires par catégorie")
 
 ca_cat = (
@@ -200,6 +245,7 @@ ca_cat = (
     .sort_values(ascending=False)
     .reset_index()
 )
+
 
 fig_cat = px.bar(
     ca_cat,
@@ -218,9 +264,10 @@ st.plotly_chart(
 )
 
 
-# ---------------------------------------------------------------------
-# CA par marque
-# ---------------------------------------------------------------------
+# ---------------------------------------------------------
+# CA PAR MARQUE
+# ---------------------------------------------------------
+
 st.subheader("Chiffre d'affaires par marque")
 
 ca_brand = (
@@ -230,6 +277,7 @@ ca_brand = (
     .sort_values(ascending=False)
     .reset_index()
 )
+
 
 fig_brand = px.bar(
     ca_brand,

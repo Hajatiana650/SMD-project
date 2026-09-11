@@ -11,13 +11,13 @@ st.set_page_config(
 st.title("Marketing Analytics Dashboard")
 
 st.write(
-    "Analyse et optimisation marketing basée sur "
-    "la segmentation client."
+    "Analyse et optimisation marketing basée sur la segmentation client."
 )
 
 st.divider()
 
 st.subheader("Modules disponibles")
+
 
 col1, col2, col3 = st.columns(3)
 
@@ -31,8 +31,7 @@ with col1:
 with col2:
     st.markdown("### 👥 Clients")
     st.write(
-        "Analyse démographique, comportement client "
-        "et churn."
+        "Analyse démographique, comportement client et churn."
     )
 
 with col3:
@@ -41,7 +40,6 @@ with col3:
         "Analyse des produits, catégories et marques."
     )
 
-st.divider()
 
 col1, col2 = st.columns(2)
 
@@ -52,11 +50,11 @@ with col1:
     )
 
 with col2:
-    st.markdown("### 🤖 Machine Learning")
+    st.markdown("### 🤖 Segmentation & Churn")
     st.write(
-        "Segmentation, churn et CLV seront intégrés "
-        "progressivement."
+        "Segmentation client et analyse du risque de churn."
     )
+
 
 st.info(
     "Utilisez le menu de navigation pour accéder aux différentes analyses."
