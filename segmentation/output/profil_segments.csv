@@ -1,0 +1,7 @@
+﻿Segment,Nb_clients,Recency_moy,Freq_moy,Monetary_moy,Panier_moy,Age_moy,Taux_churn,Pct_clients
+ Clients fidèles,137,76.19,23.25,8725.42,373.48,45.94,0.0,13.7
+ Nouveaux / à activer,1,31.0,9.0,2984.73,331.64,44.0,0.0,0.1
+ Occasionnels,234,105.89,15.08,5487.01,359.99,44.45,0.18,23.4
+ Perdus,355,558.79,6.58,1150.05,170.62,44.92,1.0,35.5
+ VIP / Champions,259,16.76,24.89,10053.26,404.56,43.5,0.0,25.9
+ À risque,14,412.07,16.93,4248.66,256.62,43.21,0.71,1.4
