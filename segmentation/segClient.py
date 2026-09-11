@@ -1,4 +1,3 @@
-
 import pandas as pd
 import numpy as np
 
@@ -18,6 +17,8 @@ from sklearn.metrics import (
 
 from pathlib import Path
 import warnings
+
+from churn.features import build_feature_set, compute_rfm
 
 warnings.filterwarnings("ignore")
 
@@ -70,16 +71,7 @@ dup_mask = sales.duplicated(
     keep=False
 )
 
-print(
-    f"\nDoublons détectés : {dup_mask.sum()} lignes"
-)
-
-# Si on veut supprimer les doublons :
-# sales = sales.drop_duplicates(
-#     subset=["Customer_ID", "Product_ID", "Date"],
-#     keep="first"
-# )
-
+print(f"\nDoublons détectés : {dup_mask.sum()} lignes")
 print(f"Lignes conservées : {len(sales)} / {n_before}")
 
 
@@ -112,7 +104,8 @@ if "Campaign_ID" not in marketing.columns:
     )
 
 
-# on renomme les colonnes qui peuvent avoir le même nom
+# On renomme les colonnes marketing qui peuvent avoir
+# le même nom que d'autres colonnes du dataset.
 marketing_renamed = marketing.rename(columns={
     "Channel": "Campaign_Channel",
     "Budget": "Campaign_Budget",
@@ -157,20 +150,38 @@ print(
 
 
 # ============================================================
-# 4. Calcul du RFM
+# 4. Construction du RFM
 # ============================================================
 
-snapshot_date = df["Date"].max() + pd.Timedelta(days=1)
+# Le RFM est maintenant calculé par le module churn.features.
+# On utilise la date officielle commune aux deux parties du projet.
+reference_date = pd.Timestamp("2025-12-31")
+
+features = build_feature_set(
+    customers,
+    sales,
+    reference_date
+)
 
 
-rfm = df.groupby("Customer_ID").agg(
-    Recency=(
-        "Date",
-        lambda x: (snapshot_date - x.max()).days
-    ),
-    Frequency=("Sale_ID", "nunique"),
-    Monetary=("Revenue", "sum")
-).reset_index()
+# Le module retourne déjà :
+# Customer_ID, Age, Gender, Location, Churn,
+# Recency, Frequency et Monetary.
+#
+# Il ne retourne pas Name ni Join_Date.
+# On les ajoute donc séparément après le build_feature_set.
+
+rfm = features.merge(
+    customers[
+        [
+            "Customer_ID",
+            "Name",
+            "Join_Date"
+        ]
+    ],
+    on="Customer_ID",
+    how="left"
+)
 
 
 # panier moyen
@@ -179,22 +190,14 @@ rfm["Avg_Basket"] = (
 ).round(2)
 
 
-# informations sur les clients
-rfm = rfm.merge(
-    customers[
-        [
-            "Customer_ID",
-            "Name",
-            "Gender",
-            "Location",
-            "Age",
-            "Join_Date",
-            "Churn"
-        ]
-    ],
-    on="Customer_ID",
-    how="left"
-)
+# Dans l'ancien script :
+# Frequency = nombre de Sale_ID différents.
+#
+# Maintenant Frequency vient de build_feature_set().
+# Le module du binôme utilise le nombre de lignes de vente
+# (count()). Le résultat peut donc être légèrement différent
+# s'il existe plusieurs lignes correspondant à une même vente.
+# Sur le dataset actuel, ce delta ne devrait pas poser problème.
 
 
 print(f"\nNombre de clients : {len(rfm)}")
@@ -280,12 +283,15 @@ for k in K_range:
     labels = km.fit_predict(X)
 
     inertias.append(km.inertia_)
+
     silhouettes.append(
         silhouette_score(X, labels)
     )
+
     ch_scores.append(
         calinski_harabasz_score(X, labels)
     )
+
     db_scores.append(
         davies_bouldin_score(X, labels)
     )
@@ -303,6 +309,7 @@ axes[0, 0].plot(
     inertias,
     marker="o"
 )
+
 axes[0, 0].set_title("Elbow (inertie)")
 
 
@@ -311,6 +318,7 @@ axes[0, 1].plot(
     silhouettes,
     marker="o"
 )
+
 axes[0, 1].set_title("Silhouette")
 
 
@@ -319,6 +327,7 @@ axes[1, 0].plot(
     ch_scores,
     marker="o"
 )
+
 axes[1, 0].set_title("Calinski-Harabasz")
 
 
@@ -327,6 +336,7 @@ axes[1, 1].plot(
     db_scores,
     marker="o"
 )
+
 axes[1, 1].set_title("Davies-Bouldin")
 
 
@@ -500,6 +510,7 @@ churn_table = (
     )
 )
 
+
 print(churn_table)
 
 
@@ -538,13 +549,42 @@ plt.close()
 # ============================================================
 
 profile = rfm.groupby("Segment").agg(
-    Nb_clients=("Customer_ID", "count"),
-    Recency_moy=("Recency", "mean"),
-    Freq_moy=("Frequency", "mean"),
-    Monetary_moy=("Monetary", "mean"),
-    Panier_moy=("Avg_Basket", "mean"),
-    Age_moy=("Age", "mean"),
-    Taux_churn=("Churn", "mean")
+
+    Nb_clients=(
+        "Customer_ID",
+        "count"
+    ),
+
+    Recency_moy=(
+        "Recency",
+        "mean"
+    ),
+
+    Freq_moy=(
+        "Frequency",
+        "mean"
+    ),
+
+    Monetary_moy=(
+        "Monetary",
+        "mean"
+    ),
+
+    Panier_moy=(
+        "Avg_Basket",
+        "mean"
+    ),
+
+    Age_moy=(
+        "Age",
+        "mean"
+    ),
+
+    Taux_churn=(
+        "Churn",
+        "mean"
+    )
+
 ).round(2)
 
 
@@ -733,6 +773,7 @@ plt.close()
 # ============================================================
 
 cols_export = [
+
     "Customer_ID",
     "Name",
     "Age",
@@ -766,3 +807,26 @@ profile.to_csv(
     OUT / "profil_segments.csv",
     encoding="utf-8-sig"
 )
+
+
+# ============================================================
+# 17. Résumé final
+# ============================================================
+
+print("\n" + "=" * 55)
+print("SEGMENTATION TERMINÉE")
+print("=" * 55)
+
+print(f"Nombre de clients : {len(rfm)}")
+print("\nRépartition des segments :")
+print(rfm["Segment"].value_counts())
+
+print("\nFichiers générés :")
+print(f"- {OUT / 'segmentation_clients.csv'}")
+print(f"- {OUT / 'profil_segments.csv'}")
+print(f"- {OUT / 'choix_k.png'}")
+print(f"- {OUT / 'churn_par_segment.png'}")
+print(f"- {OUT / 'segments_final.png'}")
+print(f"- {OUT / 'heatmap_rfm.png'}")
+
+print("=" * 55)
