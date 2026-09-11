@@ -2,20 +2,12 @@ from pathlib import Path
 import pandas as pd
 
 
-# ============================================================
-# CHEMINS
-# ============================================================
-
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 DATA_DIR = BASE_DIR / "data" / "processed"
-SEGMENTATION_DIR = BASE_DIR / "segmentation" / "output"
+SEGMENTATION_DIR = BASE_DIR / "outputs" / "segmentation"
 CHURN_DIR = BASE_DIR / "outputs" / "churn"
 
-
-# ============================================================
-# CHARGEMENT DES DONNÉES
-# ============================================================
 
 def load_data():
 
@@ -38,7 +30,15 @@ def load_data():
     customer_analytics = pd.read_csv(
         DATA_DIR / "customer_analytics.csv"
     )
-    
+
+    segmentation = pd.read_csv(
+        SEGMENTATION_DIR / "segmentation_clients.csv"
+    )
+
+    profil_segment = pd.read_csv(
+        SEGMENTATION_DIR / "profil_segments.csv"
+    )
+
     churn_predictions = pd.read_csv(
         CHURN_DIR / "predictions.csv"
     )
