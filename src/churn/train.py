@@ -21,8 +21,9 @@ from sklearn.preprocessing import StandardScaler
 
 from churn.features import build_feature_set, encode_categorical_features
 
-DATA_DIR = Path("../../data/generated")
-MODELS_DIR = Path("../../models/churn")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = PROJECT_ROOT / "data" / "generated"
+MODELS_DIR = PROJECT_ROOT / "models" / "churn"
 REFERENCE_DATE = pd.Timestamp("2025-12-31")
 RANDOM_STATE = 42
 TEST_SIZE = 0.2
