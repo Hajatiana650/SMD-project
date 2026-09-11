@@ -123,3 +123,22 @@ rate par les deux modèles — profil hybride réaliste, pas une anomalie
 du dataset. Détail : notebooks/model_training.ipynb.
 
 ---
+
+## 11 septembre 2026 — Pipeline predict.py + convention outputs/ par module
+
+**Ce qui a changé / a été décidé**
+Script `src/churn/predict.py` créé : recharge model/scaler/feature_columns
+persistés par train.py, applique le pipeline aux 1000 clients (pas
+seulement le test set), exporte churn_probability (pas de seuil binaire
+figé — laisse B3 prioriser selon son propre seuil/budget).
+
+Sortie déplacée vers `outputs/churn/predictions.csv` pour suivre la
+convention d'un sous-dossier par module (outputs/churn/, outputs/segmentation/),
+alignée avec le script de segmentation ajouté au repo (src/segmentation/).
+
+**Résultat**
+Distribution fortement polarisée (médiane 0.019, 75e percentile 0.996) —
+cohérent avec le ROC-AUC quasi parfait déjà documenté. Peu de clients
+dans la zone d'incertitude autour de 0.5.
+
+---
