@@ -1,161 +1,256 @@
-# =====================================================================
-# dashboard/pages/Clients.py
-# Analyse démographique des clients + churn
-# =====================================================================
-
-# ---------------------------------------------------------------------
-# 1. IMPORTS
-# ---------------------------------------------------------------------
 import streamlit as st
 import plotly.express as px
+
 from utils.data_loader import load_data
 
 
-# ---------------------------------------------------------------------
-# 2. TITRE
-# ---------------------------------------------------------------------
 st.title("Analyse des clients")
+st.caption("Analyse démographique et comportementale des clients")
 
 
-# ---------------------------------------------------------------------
-# 3. CHARGEMENT
-# ---------------------------------------------------------------------
-customers, sales, products, marketing, customer_analytics = load_data()
+(
+    customers,
+    sales,
+    products,
+    marketing,
+    customer_analytics,
+    segmentation,
+    profil_segment,
+    churn_predictions
+) = load_data()
 
 
-# ---------------------------------------------------------------------
-# 4. KPIs
-# ---------------------------------------------------------------------
-col1, col2, col3, col4 = st.columns(4)
+# ---------------------------------------------------------
+# FILTRE
+# ---------------------------------------------------------
 
-col1.metric("Nombre de clients", f"{len(customers):,}")
-col2.metric("Âge moyen", f"{customers['Age'].mean():.1f} ans")
-col3.metric("Taux de churn", f"{customers['Churn'].mean() * 100:.1f} %")
-col4.metric("CA moyen / client", f"{customers['Total_Spent'].mean():,.0f} $")
+st.sidebar.header("Filtres")
 
+genders = sorted(
+    customers["Gender"].dropna().unique().tolist()
+)
 
-# ---------------------------------------------------------------------
-# 5. FILTRE : par genre
-# ---------------------------------------------------------------------
-genders = ["Tous"] + sorted(customers["Gender"].unique().tolist())
-selected_gender = st.selectbox("Filtrer par genre", genders)
+selected_gender = st.sidebar.selectbox(
+    "Genre",
+    ["Tous"] + genders
+)
+
 
 if selected_gender == "Tous":
-    df_cust = customers
+
+    df_cust = customers.copy()
+
 else:
-    df_cust = customers[customers["Gender"] == selected_gender]
 
-st.caption(f"Affichage : {selected_gender} — {len(df_cust):,} clients")
+    df_cust = customers[
+        customers["Gender"] == selected_gender
+    ].copy()
 
 
-# ---------------------------------------------------------------------
-# 6. DISTRIBUTION DE L'ÂGE
-# ---------------------------------------------------------------------
-st.subheader("Distribution de l'âge")
+st.caption(
+    f"Clients affichés : {len(df_cust):,}"
+)
+
+
+# ---------------------------------------------------------
+# KPI
+# ---------------------------------------------------------
+
+st.subheader("Indicateurs clés")
+
+col1, col2, col3, col4 = st.columns(4)
+
+
+col1.metric(
+    "Clients",
+    f"{len(df_cust):,}"
+)
+
+col2.metric(
+    "Âge moyen",
+    f"{df_cust['Age'].mean():.1f} ans"
+)
+
+col3.metric(
+    "Dépense moyenne",
+    f"{df_cust['Total_Spent'].mean():,.0f} $"
+)
+
+
+if "Churn" in df_cust.columns:
+
+    churn_rate = df_cust["Churn"].mean() * 100
+
+    col4.metric(
+        "Taux de churn",
+        f"{churn_rate:.1f} %"
+    )
+
+else:
+
+    col4.metric(
+        "Taux de churn",
+        "N/A"
+    )
+
+
+# ---------------------------------------------------------
+# AGE
+# ---------------------------------------------------------
+
+st.subheader("Distribution des âges")
 
 fig_age = px.histogram(
     df_cust,
     x="Age",
-    nbins=20,
-    labels={"Age": "Âge", "count": "Nombre de clients"},
-    title="Répartition des clients par âge"
+    nbins=15,
+    labels={
+        "Age": "Âge",
+        "count": "Nombre de clients"
+    }
 )
 
-st.plotly_chart(fig_age, use_container_width=True)
+st.plotly_chart(
+    fig_age,
+    use_container_width=True
+)
 
 
-# ---------------------------------------------------------------------
-# 7. RÉPARTITION PAR GENRE
-# ---------------------------------------------------------------------
+# ---------------------------------------------------------
+# GENRE
+# ---------------------------------------------------------
+
 st.subheader("Répartition par genre")
 
-gender_count = (
-    df_cust.groupby("Gender")["Customer_ID"]
-    .count()
-    .reset_index()
+gender_data = (
+    df_cust
+    .groupby("Gender")
+    .size()
+    .reset_index(name="Clients")
 )
-gender_count.columns = ["Gender", "Nb_Clients"]
+
 
 fig_gender = px.pie(
-    gender_count,
+    gender_data,
     names="Gender",
-    values="Nb_Clients",
-    title="Répartition Hommes / Femmes"
+    values="Clients",
+    title="Répartition des clients par genre"
 )
 
-st.plotly_chart(fig_gender, use_container_width=True)
+st.plotly_chart(
+    fig_gender,
+    use_container_width=True
+)
 
 
-# ---------------------------------------------------------------------
-# 8. RÉPARTITION GÉOGRAPHIQUE (par ville)
-# ---------------------------------------------------------------------
-st.subheader("Répartition géographique")
+# ---------------------------------------------------------
+# LOCALISATION
+# ---------------------------------------------------------
 
-city_count = (
-    df_cust.groupby("Location")["Customer_ID"]
-    .count()
+st.subheader("Clients par localisation")
+
+location_data = (
+    df_cust
+    .groupby("Location")
+    .size()
     .sort_values(ascending=False)
-    .reset_index()
-)
-city_count.columns = ["Location", "Nb_Clients"]
-
-fig_city = px.bar(
-    city_count,
-    x="Nb_Clients",
-    y="Location",
-    orientation="h",
-    labels={"Nb_Clients": "Nombre de clients", "Location": ""},
-    title="Nombre de clients par ville"
+    .reset_index(name="Clients")
 )
 
-st.plotly_chart(fig_city, use_container_width=True)
 
-
-# ---------------------------------------------------------------------
-# 9. CHURN : RÉPARTITION
-# ---------------------------------------------------------------------
-st.subheader("Répartition du churn")
-
-churn_count = (
-    df_cust.groupby("Churn")["Customer_ID"]
-    .count()
-    .reset_index()
-)
-churn_count.columns = ["Churn", "Nb_Clients"]
-churn_count["Statut"] = churn_count["Churn"].map({0: "Actif", 1: "Churné"})
-
-fig_churn = px.pie(
-    churn_count,
-    names="Statut",
-    values="Nb_Clients",
-    title="Clients actifs vs churnés"
+fig_location = px.bar(
+    location_data,
+    x="Location",
+    y="Clients",
+    text="Clients",
+    labels={
+        "Location": "Localisation",
+        "Clients": "Nombre de clients"
+    }
 )
 
-st.plotly_chart(fig_churn, use_container_width=True)
-
-
-# ---------------------------------------------------------------------
-# 10. TOTAL_SPENT PAR STATUT CHURN (boxplot)
-# ---------------------------------------------------------------------
-st.subheader("Dépenses selon le statut")
-
-df_cust_plot = df_cust.copy()
-df_cust_plot["Statut"] = df_cust_plot["Churn"].map({0: "Actif", 1: "Churné"})
-
-fig_spent = px.box(
-    df_cust_plot,
-    x="Statut",
-    y="Total_Spent",
-    color="Statut",
-    labels={"Total_Spent": "Total dépensé ($)"},
-    title="Distribution des dépenses par statut"
+st.plotly_chart(
+    fig_location,
+    use_container_width=True
 )
 
-st.plotly_chart(fig_spent, use_container_width=True)
+
+# ---------------------------------------------------------
+# CHURN
+# ---------------------------------------------------------
+
+if "Churn" in df_cust.columns:
+
+    st.subheader("Répartition du churn")
+
+    churn_data = (
+        df_cust
+        .groupby("Churn")
+        .size()
+        .reset_index(name="Clients")
+    )
+
+    churn_data["Statut"] = churn_data["Churn"].map(
+        {
+            0: "Non churn",
+            1: "Churn"
+        }
+    )
+
+    fig_churn = px.pie(
+        churn_data,
+        names="Statut",
+        values="Clients",
+        title="Clients churnés / non churnés"
+    )
+
+    st.plotly_chart(
+        fig_churn,
+        use_container_width=True
+    )
 
 
-# ---------------------------------------------------------------------
-# 11. TABLEAU DÉTAILLÉ (optionnel, repliable)
-# ---------------------------------------------------------------------
-with st.expander("Voir le tableau brut des clients"):
-    st.dataframe(df_cust, use_container_width=True)
+# ---------------------------------------------------------
+# DEPENSE PAR CHURN
+# ---------------------------------------------------------
+
+if "Churn" in df_cust.columns:
+
+    st.subheader("Dépense totale selon le churn")
+
+    box_data = df_cust.copy()
+
+    box_data["Statut"] = box_data["Churn"].map(
+        {
+            0: "Non churn",
+            1: "Churn"
+        }
+    )
+
+    fig_box = px.box(
+        box_data,
+        x="Statut",
+        y="Total_Spent",
+        labels={
+            "Statut": "Statut",
+            "Total_Spent": "Dépense totale ($)"
+        }
+    )
+
+    st.plotly_chart(
+        fig_box,
+        use_container_width=True
+    )
+
+
+# ---------------------------------------------------------
+# TABLE
+# ---------------------------------------------------------
+
+st.subheader("Données clients")
+
+st.dataframe(
+    df_cust,
+    use_container_width=True,
+    hide_index=True
+)
