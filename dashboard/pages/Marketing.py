@@ -1,102 +1,190 @@
-# =====================================================================
-# dashboard/pages/Marketing.py
-# Analyse des campagnes marketing et de leur performance
-# =====================================================================
-
-# ---------------------------------------------------------------------
-# 1. IMPORTS
-# ---------------------------------------------------------------------
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+
 from utils.data_loader import load_data
 
 
-# ---------------------------------------------------------------------
-# 2. TITRE
-# ---------------------------------------------------------------------
 st.title("Analyse marketing")
+st.caption("Analyse des campagnes et performances des canaux marketing")
 
 
-# ---------------------------------------------------------------------
-# 3. CHARGEMENT
-# ---------------------------------------------------------------------
-customers, sales, products, marketing, customer_analytics = load_data()
+# ============================================================
+# CHARGEMENT DES DONNÉES
+# ============================================================
+customers, sales, products, marketing, customer_analytics, segmentation, profil_segment = load_data()
 
+# ============================================================
+# PRÉPARATION DES DONNÉES MARKETING
+# ============================================================
 
-# ---------------------------------------------------------------------
-# 4. PRÉPARATION
-#    - Revenu attribué par campagne (via Campaign_ID dans sales)
-#    - Jointure pour calculer le ROI
-# ---------------------------------------------------------------------
-df = sales.merge(products, on="Product_ID", how="left")
-df["Revenue"] = df["Quantity"] * df["Sale_Price"]
+marketing_full = marketing.copy()
 
-# Revenu total généré par chaque campagne
-revenue_by_campaign = (
-    df.groupby("Campaign_ID")["Revenue"]
-    .sum()
-    .reset_index()
-    .rename(columns={"Revenue": "Revenue_Attribue"})
+marketing_full["Start_Date"] = pd.to_datetime(
+    marketing_full["Start_Date"]
 )
 
-# Fusion avec la table marketing
-marketing_full = marketing.merge(
-    revenue_by_campaign,
-    on="Campaign_ID",
-    how="left"
+marketing_full["End_Date"] = pd.to_datetime(
+    marketing_full["End_Date"]
 )
 
-# ROI = (Revenu - Coût) / Coût
-marketing_full["ROI"] = (
-    (marketing_full["Revenue_Attribue"] - marketing_full["Budget"])
-    / marketing_full["Budget"]
+# Éviter les divisions par zéro
+marketing_full["CTR"] = (
+    marketing_full["Clicks"]
+    / marketing_full["Impressions"]
 )
 
-# Taux de conversion = Conversions / Clics
-marketing_full["Taux_Conversion"] = (
-    marketing_full["Conversions"] / marketing_full["Clicks"]
+marketing_full["Conversion_Rate"] = (
+    marketing_full["Conversions"]
+    / marketing_full["Clicks"]
+)
+
+marketing_full["CPC"] = (
+    marketing_full["Budget"]
+    / marketing_full["Clicks"]
+)
+
+marketing_full["CPA"] = (
+    marketing_full["Budget"]
+    / marketing_full["Conversions"]
 )
 
 
-# ---------------------------------------------------------------------
-# 5. KPIs
-# ---------------------------------------------------------------------
-col1, col2, col3, col4 = st.columns(4)
+# ============================================================
+# FILTRE CANAL
+# ============================================================
 
-col1.metric("Nombre de campagnes", f"{len(marketing):,}")
-col2.metric("Budget total", f"{marketing['Budget'].sum():,.0f} $")
+# ============================================================
+# FILTRES
+# ============================================================
+
+st.sidebar.header("Filtres")
+
+channels = sorted(
+    marketing_full["Channel"].dropna().unique().tolist()
+)
+
+selected_channels = st.sidebar.multiselect(
+    "Canal marketing",
+    channels,
+    default=channels
+)
+
+marketing_filtered = marketing_full[
+    marketing_full["Channel"].isin(selected_channels)
+].copy()
+
+
+if marketing_filtered.empty:
+
+    st.warning(
+        "Aucune campagne disponible avec les filtres sélectionnés."
+    )
+
+    st.stop()
+
+
+# ============================================================
+# KPI
+# ============================================================
+
+st.subheader("Indicateurs clés")
+
+col1, col2, col3, col4, col5 = st.columns(5)
+
+col1.metric(
+    "Campagnes",
+    f"{len(marketing_filtered):,}"
+)
+
+col2.metric(
+    "Budget total",
+    f"{marketing_filtered['Budget'].sum():,.0f} $"
+)
+
 col3.metric(
-    "Conversions totales",
-    f"{marketing['Conversions'].sum():,}"
+    "Impressions",
+    f"{marketing_filtered['Impressions'].sum():,.0f}"
 )
+
 col4.metric(
-    "ROI moyen",
-    f"{marketing_full['ROI'].mean() * 100:.1f} %"
+    "Clicks",
+    f"{marketing_filtered['Clicks'].sum():,.0f}"
+)
+
+col5.metric(
+    "Conversions",
+    f"{marketing_filtered['Conversions'].sum():,.0f}"
 )
 
 
-# ---------------------------------------------------------------------
-# 6. FILTRE : par canal
-# ---------------------------------------------------------------------
-channels = ["Tous"] + sorted(marketing["Channel"].unique().tolist())
-selected_channel = st.selectbox("Filtrer par canal", channels)
+# ============================================================
+# PERFORMANCES MOYENNES
+# ============================================================
 
-if selected_channel == "Tous":
-    df_mkt = marketing_full
-else:
-    df_mkt = marketing_full[marketing_full["Channel"] == selected_channel]
+st.subheader("Performances marketing")
 
-st.caption(f"Affichage : {selected_channel} — {len(df_mkt):,} campagnes")
+col1, col2, col3 = st.columns(3)
+
+total_impressions = marketing_filtered["Impressions"].sum()
+total_clicks = marketing_filtered["Clicks"].sum()
+total_conversions = marketing_filtered["Conversions"].sum()
+total_budget = marketing_filtered["Budget"].sum()
+
+ctr_global = (
+    total_clicks / total_impressions
+    if total_impressions > 0
+    else 0
+)
+
+conversion_rate_global = (
+    total_conversions / total_clicks
+    if total_clicks > 0
+    else 0
+)
+
+cpc_global = (
+    total_budget / total_clicks
+    if total_clicks > 0
+    else 0
+)
+
+cpa_global = (
+    total_budget / total_conversions
+    if total_conversions > 0
+    else 0
+)
+
+col1.metric(
+    "CTR",
+    f"{ctr_global * 100:.2f} %"
+)
+
+col2.metric(
+    "Taux de conversion",
+    f"{conversion_rate_global * 100:.2f} %"
+)
+
+col3.metric(
+    "CPC",
+    f"{cpc_global:.2f} $"
+)
+
+st.metric(
+    "CPA",
+    f"{cpa_global:.2f} $"
+)
 
 
-# ---------------------------------------------------------------------
-# 7. BUDGET PAR CANAL
-# ---------------------------------------------------------------------
+# ============================================================
+# BUDGET PAR CANAL
+# ============================================================
+
 st.subheader("Budget par canal")
 
 budget_channel = (
-    marketing_full.groupby("Channel")["Budget"]
+    marketing_filtered
+    .groupby("Channel")["Budget"]
     .sum()
     .sort_values(ascending=False)
     .reset_index()
@@ -106,89 +194,242 @@ fig_budget = px.bar(
     budget_channel,
     x="Channel",
     y="Budget",
-    labels={"Channel": "Canal", "Budget": "Budget total ($)"},
-    title="Budget total par canal"
+    text="Budget",
+    labels={
+        "Channel": "Canal",
+        "Budget": "Budget ($)"
+    },
+    title="Budget marketing par canal"
 )
 
-st.plotly_chart(fig_budget, use_container_width=True)
+st.plotly_chart(
+    fig_budget,
+    use_container_width=True
+)
 
 
-# ---------------------------------------------------------------------
-# 8. CONVERSIONS PAR CANAL
-# ---------------------------------------------------------------------
-st.subheader("Conversions par canal")
+# ============================================================
+# CTR PAR CANAL
+# ============================================================
 
-conv_channel = (
-    marketing_full.groupby("Channel")["Conversions"]
+st.subheader("CTR par canal")
+
+channel_performance = (
+    marketing_filtered
+    .groupby("Channel")
+    .agg(
+        Impressions=("Impressions", "sum"),
+        Clicks=("Clicks", "sum"),
+        Conversions=("Conversions", "sum"),
+        Budget=("Budget", "sum")
+    )
+    .reset_index()
+)
+
+channel_performance["CTR"] = (
+    channel_performance["Clicks"]
+    / channel_performance["Impressions"]
+)
+
+channel_performance["Conversion_Rate"] = (
+    channel_performance["Conversions"]
+    / channel_performance["Clicks"]
+)
+
+channel_performance["CPC"] = (
+    channel_performance["Budget"]
+    / channel_performance["Clicks"]
+)
+
+channel_performance["CPA"] = (
+    channel_performance["Budget"]
+    / channel_performance["Conversions"]
+)
+
+fig_ctr = px.bar(
+    channel_performance,
+    x="Channel",
+    y="CTR",
+    text=channel_performance["CTR"].map(
+        lambda x: f"{x * 100:.2f}%"
+    ),
+    labels={
+        "Channel": "Canal",
+        "CTR": "CTR"
+    },
+    title="Taux de clic par canal"
+)
+
+st.plotly_chart(
+    fig_ctr,
+    use_container_width=True
+)
+
+
+# ============================================================
+# TAUX DE CONVERSION PAR CANAL
+# ============================================================
+
+st.subheader("Taux de conversion par canal")
+
+fig_conversion = px.bar(
+    channel_performance,
+    x="Channel",
+    y="Conversion_Rate",
+    text=channel_performance["Conversion_Rate"].map(
+        lambda x: f"{x * 100:.2f}%"
+    ),
+    labels={
+        "Channel": "Canal",
+        "Conversion_Rate": "Taux de conversion"
+    },
+    title="Conversion des clics par canal"
+)
+
+st.plotly_chart(
+    fig_conversion,
+    use_container_width=True
+)
+
+
+# ============================================================
+# CPC / CPA PAR CANAL
+# ============================================================
+
+st.subheader("Coûts par canal")
+
+cost_data = channel_performance[
+    ["Channel", "CPC", "CPA"]
+].copy()
+
+cost_data = cost_data.melt(
+    id_vars="Channel",
+    value_vars=["CPC", "CPA"],
+    var_name="Indicateur",
+    value_name="Coût"
+)
+
+fig_cost = px.bar(
+    cost_data,
+    x="Channel",
+    y="Coût",
+    color="Indicateur",
+    barmode="group",
+    labels={
+        "Channel": "Canal",
+        "Coût": "Coût ($)",
+        "Indicateur": "Indicateur"
+    },
+    title="CPC et CPA par canal"
+)
+
+st.plotly_chart(
+    fig_cost,
+    use_container_width=True
+)
+
+
+# ============================================================
+# CA DES VENTES PAR CANAL
+# ============================================================
+
+st.subheader("Chiffre d'affaires des ventes par canal")
+
+sales_channel = sales.copy()
+
+# Sale_Price = montant total de la ligne
+sales_channel["Revenue"] = sales_channel["Sale_Price"]
+
+revenue_channel = (
+    sales_channel
+    .groupby("Channel")["Revenue"]
     .sum()
     .sort_values(ascending=False)
     .reset_index()
 )
 
-fig_conv = px.bar(
-    conv_channel,
+fig_revenue = px.bar(
+    revenue_channel,
     x="Channel",
-    y="Conversions",
-    labels={"Channel": "Canal", "Conversions": "Conversions totales"},
-    title="Conversions par canal"
-)
-
-st.plotly_chart(fig_conv, use_container_width=True)
-
-
-# ---------------------------------------------------------------------
-# 9. ROI MOYEN PAR CANAL
-# ---------------------------------------------------------------------
-st.subheader("ROI moyen par canal")
-
-roi_channel = (
-    marketing_full.groupby("Channel")["ROI"]
-    .mean()
-    .sort_values(ascending=False)
-    .reset_index()
-)
-
-fig_roi = px.bar(
-    roi_channel,
-    x="Channel",
-    y="ROI",
-    labels={"Channel": "Canal", "ROI": "ROI moyen (ratio)"},
-    title="ROI moyen par canal"
-)
-fig_roi.update_yaxes(tickformat=".0%")
-
-st.plotly_chart(fig_roi, use_container_width=True)
-
-
-# ---------------------------------------------------------------------
-# 10. SCATTER : BUDGET vs REVENU ATTRIBUÉ
-# ---------------------------------------------------------------------
-st.subheader("Budget vs Revenu attribué")
-
-fig_scatter = px.scatter(
-    df_mkt,
-    x="Budget",
-    y="Revenue_Attribue",
-    color="Channel",
-    size="Conversions",
-    hover_data=["Campaign_ID"],
+    y="Revenue",
+    text="Revenue",
     labels={
-        "Budget": "Budget ($)",
-        "Revenue_Attribue": "Revenu attribué ($)"
+        "Channel": "Canal",
+        "Revenue": "Chiffre d'affaires ($)"
     },
-    title="Corrélation Budget / Revenu par campagne"
+    title="CA des ventes par canal"
 )
 
-st.plotly_chart(fig_scatter, use_container_width=True)
+st.plotly_chart(
+    fig_revenue,
+    use_container_width=True
+)
+
+st.info(
+    "Le chiffre d'affaires par canal est présenté à titre "
+    "comparatif. Les ventes ne contiennent pas de Campaign_ID, "
+    "donc le CA ne peut pas être attribué directement à une campagne."
+)
 
 
-# ---------------------------------------------------------------------
-# 11. TABLEAU DES CAMPAGNES (repliable)
-# ---------------------------------------------------------------------
-with st.expander("Voir le détail des campagnes"):
-    cols_to_show = [
-        "Campaign_ID", "Channel", "Start_Date", "End_Date",
-        "Budget", "Impressions", "Clicks", "Conversions",
-        "Revenue_Attribue", "ROI", "Taux_Conversion"
-    ]
-    st.dataframe(df_mkt[cols_to_show], use_container_width=True)
+# ============================================================
+# TABLEAU DES CAMPAGNES
+# ============================================================
+
+st.subheader("Détail des campagnes")
+
+display_columns = [
+    "Campaign_ID",
+    "Channel",
+    "Start_Date",
+    "End_Date",
+    "Budget",
+    "Impressions",
+    "Clicks",
+    "Conversions",
+    "CTR",
+    "Conversion_Rate",
+    "CPC",
+    "CPA"
+]
+
+display_columns = [
+    col
+    for col in display_columns
+    if col in marketing_filtered.columns
+]
+
+campaign_table = marketing_filtered[
+    display_columns
+].copy()
+
+campaign_table["CTR"] = (
+    campaign_table["CTR"] * 100
+).round(2)
+
+campaign_table["Conversion_Rate"] = (
+    campaign_table["Conversion_Rate"] * 100
+).round(2)
+
+campaign_table["CPC"] = (
+    campaign_table["CPC"]
+).round(2)
+
+campaign_table["CPA"] = (
+    campaign_table["CPA"]
+).round(2)
+
+campaign_table = campaign_table.rename(
+    columns={
+        "CTR": "CTR (%)",
+        "Conversion_Rate": "Conversion (%)",
+        "CPC": "CPC ($)",
+        "CPA": "CPA ($)"
+    }
+)
+
+st.dataframe(
+    campaign_table,
+    use_container_width=True,
+    hide_index=True
+)
