@@ -1,12 +1,32 @@
 import streamlit as st
 import plotly.express as px
 
+from utils.data_loader import load_data
+
+
 st.title("Opportunités de nouveaux produits")
 
-# df doit contenir :
-# Customer_ID, Category, Revenue, Brand
-# rfm doit contenir :
-# Customer_ID, Segment
+(
+    customers,
+    sales,
+    products,
+    marketing,
+    customer_analytics,
+    segmentation,
+    profil_segment,
+    churn_predictions
+) = load_data()
+
+
+df = sales.merge(
+    products[["Product_ID", "Category", "Brand"]],
+    on="Product_ID",
+    how="left"
+)
+df["Revenue"] = df["Quantity"] * df["Sale_Price"]
+
+rfm = segmentation[["Customer_ID", "Segment"]].copy()
+rfm["Segment"] = rfm["Segment"].astype(str).str.strip()
 
 
 # CA par segment et catégorie
