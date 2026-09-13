@@ -5,7 +5,7 @@
 ---
 
 ## 🏗️ Architecture
-dashboard/
+src/dashboard/
 ├── app.py ← Page d'accueil
 ├── utils/data_loader.py ← Charge les 5 CSV
 └── pages/
@@ -151,5 +151,4 @@ Streamlit transforme automatiquement chaque fichier dans `pages/` en page de la 
 
 ```bash
 pip install streamlit plotly pandas pyarrow
-cd dashboard
-streamlit run app.py
+uv run streamlit run src/dashboard/app.py

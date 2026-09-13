@@ -22,23 +22,22 @@ Projet d'analyse de données visant à **segmenter les clients, analyser les com
 
 ```text
 ├── data/              # Données (raw/ = fourni par le professeur, generated/ = synthétique)
-├── dashboard/
+├── src/
+│   ├── dashboard/
+│   ├── marketing/
+│   ├── churn/
+│   └── segmentation/
 ├── docs/              # Journal d'évolution par module (ex. churn.md, segmentation.md)
-├── marketing/
 ├── models/            # Modèles entraînés et artefacts de preprocessing, par module
 ├── notebooks/         # Exploration et expérimentation (EDA, comparaison de modèles)
 ├── outputs/           # Résultats générés par les scripts, un sous-dossier par module
-├── src/               # Code source des modules churn/ et segmentation/
-│   ├── churn/
-│   └── segmentation/
 └── README.md
 ```
 
-> ⚠️ **Note sur la structure** : `churn/` et `segmentation/` vivent sous
-> `src/` (package Python installable via `uv`), tandis que `dashboard/`
-> et `marketing/` sont pour l'instant à la racine du projet, hors `src/`.
-> Les deux conventions coexistent actuellement — pas encore harmonisées
-> à l'échelle du repo.
+> Tous les modules applicatifs (`dashboard/`, `marketing/`, `churn/` et
+> `segmentation/`) sont regroupés sous `src/`. Les données, modèles et
+> résultats restent à la racine afin que les chemins soient indépendants du
+> module exécuté.
 
 ## 🚀 Pipeline
 
@@ -96,6 +95,12 @@ uv run python src/segmentation/predict_segmentation.py   # scoring
 Les données utilisées proviennent de `data/generated/`.
 
 Détail complet : [`src/segmentation/README.md`](src/segmentation/README.md)
+
+### Dashboard
+
+```bash
+uv run streamlit run src/dashboard/app.py
+```
 
 ## 📁 Structure des sorties
 
