@@ -12,32 +12,7 @@ L'architecture sépare l'entraînement du modèle et le scoring afin de garantir
 2. **Entraînement** (`train_segmentation.py`) — calcule les bornes de quantiles, ajuste les transformations, entraîne K-Means et sauvegarde les artefacts du modèle.
 3. **Scoring** (`predict_segmentation.py`) — recharge les artefacts entraînés et les applique aux clients sans recalculer les paramètres.
 
-L'architecture suit le même principe que le module Churn :
-
-```text
-                    TRAIN
-                      │
-                      ▼
-             train_segmentation.py
-                      │
-          ┌───────────┼───────────┐
-          │           │           │
-       RFM/Quantiles  Scaler    K-Means
-          │           │           │
-          └───────────┼───────────┘
-                      │
-                      ▼
-             models/segmentation/
-                      │
-                      ▼
-                   PREDICT
-                      │
-                      ▼
-            predict_segmentation.py
-                      │
-                      ▼
-                Segmentation
-```
+L'architecture suit le même principe que le module Churn : une étape qui apprend les paramètres et les sauvegarde, une étape séparée qui les réutilise tels quels. Le détail des deux flux est donné plus bas dans "Principe entraînement vs scoring".
 
 ## Fichiers
 
@@ -319,54 +294,32 @@ Une première version du module recalculait entièrement :
 
 Cette approche pouvait provoquer une incohérence. Par exemple, si la population de clients changeait, les bornes de `qcut` pouvaient changer et les centroïdes K-Means pouvaient être différents. Un même client pouvait alors recevoir un segment différent alors que son propre comportement n'avait pas changé.
 
-Le module a donc été refactorisé selon le même principe que le module Churn :
+Le module a donc été refactorisé selon le même principe que le module Churn : une étape d'entraînement qui apprend les paramètres et les sauvegarde, une étape de scoring qui les réutilise sans les recalculer (voir "Principe entraînement vs scoring" ci-dessus pour le détail des deux flux).
 
-```text
-                 TRAIN
-                   │
-          apprend les paramètres
-                   │
-                   ▼
-         sauvegarde les artefacts
-                   │
-                   ▼
-                PREDICT
-                   │
-          réutilise les paramètres
-                   │
-                   ▼
-              segmentation
-```
+Un second problème a été identifié pendant l'implémentation : les bornes de quantiles étaient initialement calculées sur le **rang** des valeurs (`.rank()`, utile pour gérer les ex-æquo) plutôt que sur les valeurs RFM brutes. Le scoring appliquait ensuite ces bornes directement aux valeurs brutes — un décalage d'échelle qui faisait tomber la plupart des clients hors des tranches attendues. Corrigé en calculant les bornes directement sur les valeurs RFM, avec `duplicates="drop"` pour gérer les cas où trop de valeurs identiques (notamment Frequency) empêchent 5 tranches distinctes. Détail complet : voir `docs/segmentation.md`.
 
 ## Validation du résultat
 
-Le pipeline est actuellement fonctionnel techniquement :
+Une vérification manuelle a été effectuée (voir `notebooks/segmentation_validation.ipynb` et l'entrée correspondante dans `docs/segmentation.md`), en deux temps :
 
-* le calcul RFM fonctionne ;
-* les transformations sont persistées ;
-* le scaler est persisté ;
-* le modèle K-Means est persisté ;
-* les bornes de quantiles sont persistées ;
-* le scoring recharge les artefacts ;
-* les clients sont correctement affectés à un segment ;
-* les résultats sont exportés.
+1. **Inspection du seul client classé "Nouveaux / à activer"** (Customer_ID 2634) — profil confirmé cohérent avec la règle de `label_from_rfm` (achat récent, mais peu fréquent et peu dépensier). Pas un bug, juste un segment naturellement rare dans ce dataset.
+2. **Taux de churn par segment**, pour vérifier que les noms attribués aux clusters correspondent à un vrai comportement :
 
-Cependant, le fait que le pipeline fonctionne ne suffit pas à prouver que les segments représentent parfaitement une réalité métier.
-La validation doit notamment vérifier les caractéristiques RFM de chaque segment.
+| Segment | Taux de churn | Clients |
+|---|---|---|
+| Perdus | 100% | 365 |
+| À risque | 76.9% | 13 |
+| Occasionnels | 12.8% | 257 |
+| VIP / Champions | 0% | 246 |
+| Clients fidèles | 0% | 118 |
+| Nouveaux / à activer | 0% | 1 |
 
-Par exemple, un segment VIP / Champions devrait normalement présenter une combinaison cohérente de :
-
-* Recency faible ;
-* Frequency élevée ;
-* Monetary élevé.
-
-De même, un segment Perdus devrait présenter une Recency élevée et une activité faible.
-Cette analyse permet de vérifier que les noms attribués aux clusters correspondent réellement aux comportements observés.
+La cohérence est quasi parfaite avec les noms des segments — mais cette cohérence doit être nuancée, voir "Limites connues" ci-dessous : elle ne constitue pas une preuve indépendante de la qualité du clustering.
 
 ## Limites connues
 
 * **Données synthétiques :** Les données utilisées actuellement sont synthétiques. Les résultats obtenus ne permettent donc pas de conclure que la segmentation aura la même pertinence sur de véritables données clients.
-* **Validation métier :** La cohérence technique du pipeline est validée, mais la pertinence métier des segments doit être évaluée à partir des statistiques RFM de chaque groupe. La distribution actuelle des clients doit donc être considérée comme un résultat du dataset et non comme une vérité générale.
+* **RFM et Churn partagent la même origine, pas deux signaux indépendants :** dans `generate_data.py`, `_Behavior` détermine à la fois la cible `Churn` et les leviers qui construisent le RFM (nombre d'achats, quantité, accès aux produits premium — voir `docs/churn.md`). La cohérence quasi parfaite entre segments et taux de churn (100%/0%) reflète donc en grande partie cette origine commune, pas une validation indépendante que la segmentation "prédit" le churn. À présenter comme telle dans le rapport final (M9), pas comme une performance généralisable.
 * **Choix de K :** K-Means nécessite de choisir le nombre de clusters. Le modèle actuel utilise $K = 3$, déterminé à partir de plusieurs métriques de clustering. Le détail des scores obtenus pour les différentes valeurs de K doit être conservé dans la documentation du projet afin de justifier ce choix dans le rapport final.
 * **Sensibilité aux données :** Les résultats d'un clustering dépendent des données utilisées lors de l'entraînement. Si les données deviennent très différentes du dataset actuel, une réévaluation du modèle et de ses segments peut être nécessaire.
 * **Absence de prédiction temporelle :** La segmentation décrit le comportement observé sur la période disponible. Elle ne prédit pas directement l'évolution future du client. Pour estimer le risque de départ futur, le module Churn est utilisé en complément.
