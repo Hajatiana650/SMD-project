@@ -18,6 +18,115 @@ Projet d'analyse de données visant à **segmenter les clients, analyser les com
 * **Machine Learning** : K-Means, PCA, Random Forest, XGBoost, Régression Logistique
 * **Dashboard** : Streamlit
 
+## 📋 Prérequis
+
+* **Python 3.11+** (recommandé 3.11 ou 3.12)
+* **Git** pour cloner le repository
+* **uv** — gestionnaire de paquets et environnement Python ultra-rapide
+* Environ **500 MB** d'espace disque libre (dépendances + données + modèles)
+
+## 💾 Installation
+
+### 1. Cloner le repository
+
+```bash
+git clone https://github.com/Hajatiana650/SMD-project.git
+cd SMD-project
+```
+
+### 2. Installer `uv`
+
+`uv` est un remplacement ultra-rapide pour `pip` et `virtualenv`. Installez-le via :
+
+#### Sur Linux / macOS
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+> Après l'installation, assurez-vous que `~/.local/bin` est dans votre `PATH` :
+>
+> ```bash
+> export PATH="$HOME/.local/bin:$PATH"
+> ```
+>
+> Vous pouvez ajouter cette ligne à votre fichier de profil shell (`~/.bashrc`, `~/.zshrc`, etc.) pour la rendre persistante.
+
+#### Sur Windows
+
+Téléchargez et exécutez l'installateur depuis [astral.sh/uv](https://astral.sh/uv), ou utilisez PowerShell :
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+**Important : Ajouter `uv` au PATH sur Windows**
+
+Après l'installation, vous devez ajouter `uv` à votre variable d'environnement `PATH` :
+
+**Option 1 : Via l'interface graphique (recommandée)**
+
+1. Appuyez sur `Win + R`, tapez `sysdm.cpl` et appuyez sur Entrée
+2. Allez à l'onglet **Variables d'environnement** en bas à droite
+3. Cliquez sur **Variables d'environnement**
+4. Dans la section **Variables utilisateur**, cliquez sur **Nouveau...** (ou modifiez `PATH` s'il existe)
+5. Nom de la variable : `PATH`
+6. Valeur : `%USERPROFILE%\AppData\Local\uv\bin`
+7. Cliquez sur **OK** et fermez les fenêtres
+8. **Redémarrez votre PowerShell/CMD** pour que les changements prennent effet
+
+**Option 2 : Via PowerShell (ligne de commande)**
+
+Exécutez en tant qu'administrateur :
+
+```powershell
+[Environment]::SetEnvironmentVariable(
+    "PATH",
+    "$env:PATH;$env:USERPROFILE\AppData\Local\uv\bin",
+    "User"
+)
+```
+
+Puis **redémarrez votre terminal**.
+
+**Vérifier que `uv` est dans le PATH**
+
+Ouvrez un **nouveau terminal** (PowerShell ou CMD) et exécutez :
+
+```powershell
+uv --version
+```
+
+Si vous voyez un numéro de version (ex. `uv 0.4.0`), l'installation est réussie ! ✅
+
+#### Vérifier l'installation
+
+```bash
+uv --version
+```
+
+### 3. Installer les dépendances du projet
+
+Une fois `uv` installé et dans votre `PATH`, exécutez :
+
+```bash
+uv sync
+```
+
+Cette commande :
+
+* Crée un environnement virtuel isolé (`.venv/`)
+* Installe toutes les dépendances déclarées dans `pyproject.toml`
+* Génère/synchronise le fichier de verrous `uv.lock` pour la reproductibilité
+
+### 4. Vérifier l'installation
+
+```bash
+uv run python --version
+```
+
+Devrait afficher Python 3.11+ depuis l'environnement virtuel du projet.
+
 ## 📂 Structure
 
 ```text
