@@ -20,14 +20,14 @@ Streamlit permet de construire rapidement une application interactive en Python 
 
 **Ce qui a changé / a été décidé**
 
-Création du dossier `dashboard/` avec une séparation entre l'application, les pages et les fonctions utilitaires.
+Création du dossier `src/dashboard/` avec une séparation entre l'application, les pages et les fonctions utilitaires.
 
 Structure prévue :
 
-`dashboard/app.py`
-`dashboard/pages/`
-`dashboard/components/`
-`dashboard/utils/`
+`src/dashboard/app.py`
+`src/dashboard/pages/`
+`src/dashboard/components/`
+`src/dashboard/utils/`
 
 **Pourquoi**
 
@@ -39,7 +39,7 @@ Préparer une architecture permettant d'intégrer progressivement les résultats
 
 **Ce qui a changé / a été décidé**
 
-Création de `dashboard/utils/data_loader.py` pour charger les fichiers présents dans `data/processed/`.
+Création de `src/dashboard/utils/data_loader.py` pour charger les fichiers présents dans `data/processed/`.
 
 **Données chargées**
 
@@ -59,7 +59,7 @@ Centraliser l'accès aux données et éviter de répéter le code de chargement 
 
 **Ce qui a changé / a été décidé**
 
-Création de `dashboard/app.py` avec une première vue globale et des KPI.
+Création de `src/dashboard/app.py` avec une première vue globale et des KPI.
 
 **KPI prévus**
 

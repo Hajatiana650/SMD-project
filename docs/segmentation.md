@@ -32,3 +32,37 @@ détailler dans une prochaine entrée, une fois validée avec le binôme
 responsable du module.
 
 ---
+
+## 11 septembre 2026 — predict_segmentation.py implémenté, validation croisée churn/segment
+
+**Ce qui a changé / a été décidé**
+Bug corrigé dans `train_segmentation.py` : `compute_quantile_edges`
+calculait les bornes sur les rangs (`.rank()`) plutôt que sur les
+valeurs RFM brutes, provoquant des NaN au predict (bornes appliquées à
+une échelle différente de celle sur laquelle elles avaient été
+calculées). Corrigé pour calculer les bornes directement sur les
+valeurs, avec `duplicates="drop"` pour gérer les cas où trop de valeurs
+identiques (surtout Frequency, entière) empêchent 5 tranches distinctes.
+
+`predict_segmentation.py` implémenté : recharge scaler/kmeans/
+log_columns/quantile_edges, applique sans réentraîner (transform/predict
+only, pd.cut avec bornes fixes au lieu de pd.qcut).
+
+**Résultat**
+Répartition très déséquilibrée : Perdus 36.5%, Occasionnels 25.7%, VIP
+24.6%, Fidèles 11.8%, À risque 1.3%, Nouveaux 0.1%. Client 633 (seul
+"Nouveaux") vérifié manuellement — profil cohérent avec la règle de
+label_from_rfm, pas un bug.
+
+Taux de churn par segment très cohérent avec les noms (Perdus 100%,
+À risque 77%, VIP/Fidèles 0%) — confirme que le pipeline capture un
+vrai signal RFM plutôt qu'un artefact.
+
+**Limite à noter pour M9**
+Cette cohérence quasi parfaite n'est pas une preuve de qualité
+généralisable : RFM et Churn dérivent tous les deux du même
+`_Behavior` déterministe dans generate_data.py (voir docs/churn.md).
+La segmentation retrouve le même signal que le modèle churn plutôt que
+d'apporter une validation indépendante.
+
+---
